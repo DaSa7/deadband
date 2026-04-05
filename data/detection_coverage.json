@@ -1,0 +1,174 @@
+{
+  "_comment": "Maps security platform names to the ATT&CK for ICS technique IDs they can detect. Based on public vendor docs, ATT&CK evaluations, and capability disclosures as of early 2025. Edit this file to reflect your actual deployed stack — the gap analysis is only as good as what you put in here.",
+
+  "claroty": {
+    "category": "ot",
+    "description": "Claroty xDome / Continuous Threat Detection. Strong OT protocol inspection and network anomaly detection. Limited on endpoint/host-based techniques since it's network-passive.",
+    "techniques": [
+      "T0801", "T0802", "T0803", "T0804", "T0806",
+      "T0809", "T0812", "T0813", "T0814", "T0815",
+      "T0816", "T0819", "T0822", "T0826", "T0827",
+      "T0829", "T0830", "T0831", "T0832", "T0835",
+      "T0836", "T0838", "T0840", "T0842", "T0843",
+      "T0845", "T0846", "T0848", "T0855", "T0856",
+      "T0858", "T0859", "T0861", "T0866", "T0867",
+      "T0868", "T0869", "T0877", "T0878", "T0881",
+      "T0883", "T0884", "T0885", "T0886", "T0887",
+      "T0888", "T0891", "T0892"
+    ]
+  },
+
+  "dragos": {
+    "category": "ot",
+    "description": "Dragos Platform. Best-in-class ICS threat hunting and protocol analysis. Has named threat group detection content for CHERNOVITE, ELECTRUM, VOLTZITE, KAMACITE, and others. Weakest on pure endpoint techniques.",
+    "techniques": [
+      "T0801", "T0802", "T0807", "T0809", "T0811",
+      "T0812", "T0813", "T0814", "T0815", "T0816",
+      "T0817", "T0819", "T0822", "T0826", "T0827",
+      "T0829", "T0830", "T0831", "T0835", "T0836",
+      "T0838", "T0840", "T0842", "T0843", "T0845",
+      "T0846", "T0848", "T0849", "T0853", "T0855",
+      "T0856", "T0858", "T0859", "T0861", "T0865",
+      "T0866", "T0867", "T0868", "T0869", "T0872",
+      "T0877", "T0878", "T0881", "T0883", "T0884",
+      "T0885", "T0886", "T0887", "T0888", "T0891",
+      "T0892", "T0893"
+    ]
+  },
+
+  "nozomi": {
+    "category": "ot",
+    "description": "Nozomi Networks Guardian / Arc. Solid OT protocol breadth and asset visibility. Relative strength in wireless and serial protocol detection. Less threat-group-specific content than Dragos.",
+    "techniques": [
+      "T0801", "T0802", "T0803", "T0804", "T0805",
+      "T0806", "T0812", "T0813", "T0814", "T0815",
+      "T0816", "T0819", "T0822", "T0826", "T0827",
+      "T0829", "T0830", "T0831", "T0832", "T0835",
+      "T0836", "T0838", "T0840", "T0842", "T0843",
+      "T0845", "T0846", "T0848", "T0849", "T0855",
+      "T0856", "T0858", "T0859", "T0860", "T0861",
+      "T0866", "T0867", "T0868", "T0869", "T0877",
+      "T0878", "T0881", "T0883", "T0884", "T0885",
+      "T0886", "T0887", "T0888", "T0891", "T0892"
+    ]
+  },
+
+  "splunk": {
+    "category": "siem",
+    "description": "Splunk Enterprise Security with the ICS/SCADA add-on and relevant data sources (Sysmon, WEF, firewall, historian logs). Coverage heavily depends on what you're actually ingesting — this reflects a well-tuned deployment.",
+    "techniques": [
+      "T0801", "T0802", "T0807", "T0809", "T0811",
+      "T0812", "T0813", "T0814", "T0815", "T0816",
+      "T0817", "T0819", "T0822", "T0826", "T0827",
+      "T0829", "T0840", "T0842", "T0843", "T0845",
+      "T0846", "T0849", "T0852", "T0853", "T0855",
+      "T0856", "T0858", "T0859", "T0861", "T0863",
+      "T0865", "T0866", "T0867", "T0868", "T0869",
+      "T0871", "T0872", "T0874", "T0877", "T0878",
+      "T0881", "T0883", "T0884", "T0885", "T0886",
+      "T0888", "T0890", "T0891", "T0893", "T0894",
+      "T0895"
+    ]
+  },
+
+  "qradar": {
+    "category": "siem",
+    "description": "IBM QRadar SIEM with ICS/SCADA content extensions. Similar log-source coverage to Splunk but fewer community-built ICS-specific rules. Assumes Guardium or network flow data is feeding the SIEM.",
+    "techniques": [
+      "T0802", "T0807", "T0809", "T0811",
+      "T0812", "T0813", "T0814", "T0815", "T0816",
+      "T0817", "T0819", "T0822", "T0826", "T0827",
+      "T0829", "T0840", "T0842", "T0843", "T0845",
+      "T0846", "T0849", "T0852", "T0853",
+      "T0858", "T0859", "T0863",
+      "T0865", "T0866", "T0867", "T0869",
+      "T0871", "T0872", "T0874",
+      "T0881", "T0883", "T0884", "T0885", "T0886",
+      "T0888", "T0890", "T0891", "T0893", "T0895"
+    ]
+  },
+
+  "sentinel": {
+    "category": "siem",
+    "description": "Microsoft Sentinel with Defender for IoT integration. Unusually broad for a SIEM because Defender for IoT feeds OT-specific alerts directly into the workspace. Best SIEM option for environments that already run Microsoft.",
+    "techniques": [
+      "T0801", "T0802", "T0803", "T0807", "T0809",
+      "T0811", "T0812", "T0813", "T0814", "T0815",
+      "T0816", "T0817", "T0819", "T0822", "T0826",
+      "T0827", "T0829", "T0830", "T0835", "T0836",
+      "T0838", "T0840", "T0842", "T0843", "T0845",
+      "T0846", "T0848", "T0849", "T0852", "T0853",
+      "T0855", "T0856", "T0858", "T0859", "T0861",
+      "T0863", "T0865", "T0866", "T0867", "T0868",
+      "T0869", "T0871", "T0872", "T0874", "T0877",
+      "T0878", "T0881", "T0883", "T0884", "T0885",
+      "T0886", "T0888", "T0890", "T0891", "T0892",
+      "T0893", "T0894", "T0895"
+    ]
+  },
+
+  "crowdstrike": {
+    "category": "edr",
+    "description": "CrowdStrike Falcon (EDR/XDR). Excellent on Windows/Linux endpoint techniques — process, persistence, privilege escalation, credential access. Network visibility through Falcon Insight. Blind to OT-layer protocol techniques since it doesn't speak Modbus or DNP3.",
+    "techniques": [
+      "T0802", "T0807", "T0809", "T0811", "T0812",
+      "T0816", "T0817", "T0819", "T0820", "T0822",
+      "T0823", "T0834", "T0840", "T0842", "T0843",
+      "T0845", "T0846", "T0847", "T0849", "T0851",
+      "T0852", "T0853", "T0857", "T0858", "T0859",
+      "T0863", "T0865", "T0866", "T0867", "T0869",
+      "T0871", "T0872", "T0873", "T0874", "T0881",
+      "T0883", "T0884", "T0885", "T0886", "T0888",
+      "T0890", "T0891", "T0893", "T0894", "T0895"
+    ]
+  },
+
+  "defender": {
+    "category": "edr",
+    "description": "Microsoft Defender for Endpoint + Defender for IoT combined. Strong Windows endpoint coverage. When Defender for IoT sensors are deployed you also get some OT-layer visibility — a meaningful advantage over most EDRs in OT environments.",
+    "techniques": [
+      "T0801", "T0802", "T0807", "T0809", "T0811",
+      "T0812", "T0813", "T0814", "T0815", "T0816",
+      "T0817", "T0819", "T0820", "T0822", "T0823",
+      "T0834", "T0835", "T0836", "T0838", "T0840",
+      "T0842", "T0843", "T0845", "T0846", "T0847",
+      "T0848", "T0849", "T0851", "T0852", "T0853",
+      "T0855", "T0856", "T0857", "T0858", "T0859",
+      "T0861", "T0863", "T0865", "T0866", "T0867",
+      "T0869", "T0871", "T0872", "T0873", "T0874",
+      "T0878", "T0881", "T0883", "T0884", "T0885",
+      "T0886", "T0888", "T0890", "T0891", "T0892",
+      "T0893", "T0894", "T0895"
+    ]
+  },
+
+  "zeek": {
+    "category": "open_source",
+    "description": "Zeek (formerly Bro) network analysis framework with ICSNPP ICS protocol scripts. Pure network visibility — very strong on traffic-based detection but zero host/endpoint telemetry. Coverage assumes the ICSNPP plugin suite (Modbus, DNP3, EtherNet/IP, BACnet, etc.) is installed.",
+    "techniques": [
+      "T0801", "T0803", "T0804", "T0805", "T0806",
+      "T0812", "T0813", "T0814", "T0815", "T0819",
+      "T0821", "T0822", "T0826", "T0827", "T0829",
+      "T0830", "T0831", "T0832", "T0835", "T0836",
+      "T0838", "T0840", "T0842", "T0843", "T0845",
+      "T0846", "T0848", "T0855", "T0856", "T0858",
+      "T0860", "T0861", "T0865", "T0866", "T0867",
+      "T0868", "T0869", "T0877", "T0878", "T0883",
+      "T0884", "T0885", "T0886", "T0887", "T0888"
+    ]
+  },
+
+  "snort": {
+    "category": "open_source",
+    "description": "Snort 3 IDS/IPS with community + Talos ICS rulesets. Signature-based so it only catches what it has rules for. Good on known exploit patterns and malformed protocol packets; poor on behavioural / anomaly techniques. Narrower than Zeek for OT.",
+    "techniques": [
+      "T0803", "T0804", "T0806",
+      "T0813", "T0814", "T0819", "T0821", "T0822",
+      "T0826", "T0830", "T0835", "T0836",
+      "T0838", "T0840", "T0842", "T0843", "T0846",
+      "T0848", "T0855", "T0856", "T0860",
+      "T0865", "T0866", "T0869", "T0883",
+      "T0884", "T0885", "T0886", "T0887", "T0888"
+    ]
+  }
+}
