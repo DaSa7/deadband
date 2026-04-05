@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deadband — ICS/OT Threat Intelligence</title>
+  <style>
+    /* ── Reset ──────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Base ───────────────────────────────────────────────────── */
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #21262d;
+      --text:      #e6edf3;
+      --dim:       #8b949e;
+      --accent:    #00ff88;
+      --accent-dk: #00cc6a;
+      --danger:    #f85149;
+      --warn:      #d29922;
+      --mono:      "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent); }
+    .logo-sub { font-size: 11px; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+    .header-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 12px;
+    }
+
+    /* ── Main content ───────────────────────────────────────────── */
+    main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 0;
+      height: 100%;
+    }
+
+    /* ── Left panel — config form ───────────────────────────────── */
+    .panel-config {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--dim);
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--dim);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, select:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--dim); }
+    select option { background: var(--bg); }
+    select optgroup { color: var(--accent); font-size: 11px; }
+
+    .field { display: flex; flex-direction: column; }
+
+    /* ── Run button ─────────────────────────────────────────────── */
+    #btn-run {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: #0d1117;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--mono);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    #btn-run:hover  { background: var(--accent-dk); }
+    #btn-run:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Status indicator ───────────────────────────────────────── */
+    #status-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot.running { background: var(--accent); animation: pulse 1.2s infinite; }
+    .dot.done    { background: var(--accent); animation: none; }
+    .dot.failed  { background: var(--danger); animation: none; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* ── Summary card (shown after completion) ──────────────────── */
+    #summary {
+      display: none;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .summary-header {
+      background: #0a1f14;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+    }
+    .stat { background: var(--bg); padding: 12px 14px; }
+    .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent); }
+    .stat-val.danger { color: var(--danger); }
+    .stat-lbl { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 2px; }
+
+    /* ── Download button ────────────────────────────────────────── */
+    #btn-download {
+      display: none;
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--mono);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: background 0.15s;
+    }
+    #btn-download:hover { background: #0a1f14; }
+
+    /* ── Coverage bar ───────────────────────────────────────────── */
+    .cov-wrap { padding: 12px 14px; background: var(--bg); border-top: 1px solid var(--border); }
+    .cov-label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+    .cov-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .cov-fill  { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-dk)); transition: width 0.6s ease; }
+    .cov-pct { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-top: 4px; }
+
+    /* ── Right panel — log output ───────────────────────────────── */
+    .panel-log {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .log-toolbar {
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--dim);
+      flex-shrink: 0;
+    }
+    .log-toolbar .log-title { font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+    #btn-clear { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 11px; padding: 2px 8px; }
+    #btn-clear:hover { color: var(--text); }
+
+    #log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: #c9d1d9;
+      background: var(--bg);
+    }
+    #log:empty::before {
+      content: "Waiting for pipeline output...";
+      color: var(--dim);
+      font-style: italic;
+    }
+    .log-line { display: block; white-space: pre-wrap; word-break: break-all; }
+    .log-line.info    { color: #c9d1d9; }
+    .log-line.success { color: var(--accent); }
+    .log-line.warn    { color: var(--warn); }
+    .log-line.error   { color: var(--danger); }
+    .log-line.section { color: var(--accent); font-weight: 700; margin-top: 6px; }
+
+    /* ── Gap techniques list ─────────────────────────────────────── */
+    #gap-list { display: none; flex-direction: column; gap: 0; border-top: 1px solid var(--border); }
+    .gap-list-header {
+      padding: 8px 14px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--danger);
+      background: #160a0a;
+      border-bottom: 1px solid var(--border);
+    }
+    .gap-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+    .gap-row:last-child { border-bottom: none; }
+    .gap-tid { font-family: var(--mono); color: var(--accent); min-width: 56px; flex-shrink: 0; }
+    .gap-name { color: var(--text); flex: 1; }
+    .gap-actors { color: var(--danger); font-size: 10px; margin-top: 2px; }
+    .gap-tactic {
+      display: inline-block;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 3px;
+      padding: 0 5px;
+      font-size: 10px;
+      color: #9ca3af;
+      margin-right: 3px;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────── */
+    footer {
+      padding: 12px 32px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--dim);
+      display: flex;
+      justify-content: space-between;
+    }
+    footer .brand { color: var(--accent); font-family: var(--mono); }
+
+    /* ── Scrollbar ──────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #30363d; }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <div>
+      <div class="logo">// deadband</div>
+      <div class="logo-sub">ICS/OT Threat Intelligence Mapper</div>
+    </div>
+    <span class="header-badge">ATT&amp;CK for ICS</span>
+  </header>
+
+  <!-- Main -->
+  <main>
+
+    <!-- Left: config + results -->
+    <div class="panel-config">
+
+      <div>
+        <div class="panel-title">Configure Run</div>
+
+        <div class="field" style="margin-bottom:16px;">
+          <label for="vendor">Vendor / Keyword</label>
+          <input type="text" id="vendor" placeholder="e.g. Siemens, Rockwell, Modbus" autocomplete="off">
+        </div>
+
+        <div class="field" style="margin-bottom:20px;">
+          <label for="platform">Detection Platform</label>
+          <select id="platform">
+            <option value="">Loading platforms…</option>
+          </select>
+        </div>
+
+        <button id="btn-run" onclick="startRun()">▶ Run Pipeline</button>
+      </div>
+
+      <!-- Status indicator -->
+      <div id="status-bar">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">Running…</span>
+      </div>
+
+      <!-- Summary stats (shown on completion) -->
+      <div id="summary">
+        <div class="summary-header">Result Summary</div>
+        <div class="summary-grid">
+          <div class="stat"><div class="stat-val" id="s-cves">—</div><div class="stat-lbl">CVEs Collected</div></div>
+          <div class="stat"><div class="stat-val" id="s-tech">—</div><div class="stat-lbl">Techniques</div></div>
+          <div class="stat"><div class="stat-val danger" id="s-gaps">—</div><div class="stat-lbl">Blind Spots</div></div>
+          <div class="stat"><div class="stat-val" id="s-covered">—</div><div class="stat-lbl">Covered</div></div>
+        </div>
+        <div class="cov-wrap">
+          <div class="cov-label">Platform Coverage</div>
+          <div class="cov-track"><div class="cov-fill" id="cov-fill" style="width:0%"></div></div>
+          <div class="cov-pct" id="cov-pct">0%</div>
+        </div>
+        <div id="gap-list">
+          <div class="gap-list-header">⚠ Top Blind Spots</div>
+          <div id="gap-rows"></div>
+        </div>
+      </div>
+
+      <!-- Download button -->
+      <button id="btn-download" onclick="downloadReport()">⬇ Download PDF Report</button>
+
+    </div>
+
+    <!-- Right: live log output -->
+    <div class="panel-log">
+      <div class="log-toolbar">
+        <span class="log-title">Pipeline Output</span>
+        <button id="btn-clear" onclick="clearLog()">Clear</button>
+      </div>
+      <div id="log"></div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <span>Generated by <span class="brand">// deadband</span></span>
+    <span id="footer-job" style="font-family:var(--mono)"></span>
+  </footer>
+
+</div>
+
+<script>
+  let currentJobId = null;
+  let currentFilename = null;
+
+  // ── Load platforms into the dropdown on page load ────────────────
+  async function loadPlatforms() {
+    try {
+      const res = await fetch("/platforms");
+      const data = await res.json();
+      const sel = document.getElementById("platform");
+      sel.innerHTML = "";
+
+      for (const cat of data.categories) {
+        const group = document.createElement("optgroup");
+        group.label = cat.toUpperCase();
+        for (const p of data.platforms[cat]) {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = `${p.label}  (${p.technique_count} techniques)`;
+          opt.title = p.description;
+          group.appendChild(opt);
+        }
+        sel.appendChild(group);
+      }
+    } catch (e) {
+      const sel = document.getElementById("platform");
+      sel.innerHTML = '<option value="">Failed to load platforms</option>';
+      console.error("Couldn't load platforms:", e);
+    }
+  }
+
+  // ── Start a pipeline run ─────────────────────────────────────────
+  async function startRun() {
+    const vendor   = document.getElementById("vendor").value.trim();
+    const platform = document.getElementById("platform").value;
+
+    if (!vendor)   { alert("Please enter a vendor or keyword."); return; }
+    if (!platform) { alert("Please select a platform."); return; }
+
+    // reset UI state
+    currentJobId = null;
+    currentFilename = null;
+    clearLog();
+    hideElement("summary");
+    hideElement("btn-download");
+    hideElement("gap-list");
+    document.getElementById("gap-rows").innerHTML = "";
+    document.getElementById("btn-run").disabled = true;
+    showStatus("running", `Running pipeline for '${vendor}' / ${platform}...`);
+
+    try {
+      const res = await fetch("/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendor, platform }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        appendLog(`[ERROR] ${err.error || "Server error"}`, "error");
+        showStatus("failed", "Run failed.");
+        document.getElementById("btn-run").disabled = false;
+        return;
+      }
+
+      // read the SSE stream via fetch ReadableStream
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // keep any incomplete line for next chunk
+
+        for (const raw of lines) {
+          if (!raw.startsWith("data:")) continue;
+          const payload = raw.slice(5).trim();
+          handleEvent(payload);
+        }
+      }
+
+    } catch (e) {
+      appendLog(`[ERROR] Connection error: ${e.message}`, "error");
+      showStatus("failed", "Connection lost.");
+    }
+
+    document.getElementById("btn-run").disabled = false;
+  }
+
+  // ── Handle a single SSE payload ─────────────────────────────────
+  function handleEvent(payload) {
+    if (payload.startsWith("[DONE]")) {
+      // strip prefix, parse result JSON
+      const result = JSON.parse(payload.slice(6).trim());
+      currentFilename = result.report_filename;
+      showSummary(result);
+      showStatus("done", "Pipeline complete.");
+      showElement("btn-download");
+      appendLog("", "");
+      appendLog(`✓ Report ready: ${currentFilename}`, "success");
+      return;
+    }
+
+    if (payload.startsWith("[ERROR]")) {
+      const err = JSON.parse(payload.slice(7).trim());
+      appendLog(`[ERROR] ${err.error}`, "error");
+      showStatus("failed", "Pipeline failed.");
+      return;
+    }
+
+    // regular log event
+    try {
+      const event = JSON.parse(payload);
+      if (event.type === "job_id") {
+        currentJobId = event.job_id;
+        document.getElementById("footer-job").textContent = `job: ${event.job_id}`;
+        return;
+      }
+      if (event.type === "log") {
+        const msg = event.message;
+        const cls = classifyLogLine(msg);
+        appendLog(msg, cls);
+      }
+    } catch (e) {
+      // not JSON — just print it raw
+      appendLog(payload, "info");
+    }
+  }
+
+  // ── Colour-code log lines by content ────────────────────────────
+  function classifyLogLine(msg) {
+    if (msg.startsWith("===") || msg.startsWith("//"))  return "section";
+    if (msg.includes("[ERROR]") || msg.includes("Failed") || msg.includes("ERROR"))  return "error";
+    if (msg.includes("WARNING") || msg.includes("Timeout"))  return "warn";
+    if (msg.includes("Done") || msg.includes("✓") || msg.includes("saved")) return "success";
+    return "info";
+  }
+
+  // ── Append a line to the log panel ──────────────────────────────
+  function appendLog(text, cls) {
+    const el = document.getElementById("log");
+    const line = document.createElement("span");
+    line.className = `log-line ${cls}`;
+    line.textContent = text;
+    el.appendChild(line);
+    el.appendChild(document.createElement("br"));
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // ── Show the result summary card ─────────────────────────────────
+  function showSummary(result) {
+    document.getElementById("s-cves").textContent    = result.total_cves ?? "—";
+    document.getElementById("s-tech").textContent    = result.total_techniques ?? "—";
+    document.getElementById("s-gaps").textContent    = result.gaps ?? "—";
+    document.getElementById("s-covered").textContent = result.covered ?? "—";
+
+    const pct = result.coverage_pct ?? 0;
+    document.getElementById("cov-fill").style.width = `${pct}%`;
+    document.getElementById("cov-pct").textContent   = `${pct}%`;
+
+    // top blind spots
+    const gaps = result.gap_techniques || [];
+    if (gaps.length > 0) {
+      const container = document.getElementById("gap-rows");
+      container.innerHTML = "";
+      for (const t of gaps) {
+        const row = document.createElement("div");
+        row.className = "gap-row";
+
+        const actorText = (t.groups || []).join(", ");
+        const tacticHtml = (t.tactics || [])
+          .map(tc => `<span class="gap-tactic">${tc.replace(/-/g, " ")}</span>`)
+          .join("");
+
+        row.innerHTML = `
+          <span class="gap-tid">${t.technique_id}</span>
+          <span class="gap-name">
+            ${escHtml(t.name)}
+            <div style="margin-top:3px">${tacticHtml}</div>
+            ${actorText ? `<div class="gap-actors">▲ ${escHtml(actorText)}</div>` : ""}
+          </span>`;
+        container.appendChild(row);
+      }
+      showElement("gap-list");
+    }
+
+    showElement("summary");
+  }
+
+  // ── Download the PDF ─────────────────────────────────────────────
+  function downloadReport() {
+    if (!currentFilename) return;
+    window.location.href = `/report/${encodeURIComponent(currentFilename)}`;
+  }
+
+  // ── Status bar ───────────────────────────────────────────────────
+  function showStatus(state, text) {
+    const bar  = document.getElementById("status-bar");
+    const dot  = document.getElementById("status-dot");
+    const msg  = document.getElementById("status-text");
+    dot.className = `dot ${state}`;
+    msg.textContent = text;
+    bar.style.display = "flex";
+  }
+
+  // ── Misc helpers ─────────────────────────────────────────────────
+  function clearLog() {
+    document.getElementById("log").innerHTML = "";
+  }
+
+  function showElement(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === "gap-list" ? "flex" : "block";
+  }
+
+  function hideElement(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // ── Allow Enter key in vendor field ─────────────────────────────
+  document.addEventListener("DOMContentLoaded", () => {
+    loadPlatforms();
+    document.getElementById("vendor").addEventListener("keydown", e => {
+      if (e.key === "Enter") startRun();
+    });
+  });
+</script>
+</body>
+</html>
