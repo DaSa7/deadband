@@ -13,7 +13,26 @@ Deadband takes a vendor or protocol name, pulls every relevant CVE from NVD and 
 CVEs (NVD + CISA) → ATT&CK for ICS techniques → Threat group attribution → Detection gap analysis → PDF report
 ```
 
-One command in, one report out.
+One command in, one report out. Or spin up the web UI and do it from a browser.
+
+---
+
+## Web UI
+
+Deadband has a Flask-based web UI with live pipeline streaming — you can watch the analysis run in real time and download the PDF report directly from the browser.
+
+```bash
+python app.py
+```
+
+Then open `http://127.0.0.1:5000`.
+
+Features:
+- Platform dropdown populated from `detection_coverage.json`
+- Live log output streamed via Server-Sent Events as the pipeline runs
+- Result summary cards — CVEs collected, techniques found, coverage %, blind spots
+- Coverage bar and top blind spot list with threat actor attribution
+- One-click PDF download
 
 ---
 
@@ -50,7 +69,7 @@ Create a `.env` file in the project root:
 NVD_API_KEY=your-key-here
 ```
 
-WeasyPrint (used for PDF rendering) needs a couple of system dependencies on Debian/Kali:
+WeasyPrint needs a couple of system dependencies on Debian/Kali:
 
 ```bash
 sudo apt install libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 -y
@@ -59,6 +78,8 @@ sudo apt install libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 -y
 ---
 
 ## Usage
+
+### CLI
 
 ```bash
 # Generate a threat intelligence report
@@ -76,6 +97,13 @@ python main.py --list-platforms
 ```
 
 Reports are saved to `reports/` by default, named `deadband_{vendor}_{platform}.pdf`.
+
+### Web UI
+
+```bash
+python app.py
+# → http://127.0.0.1:5000
+```
 
 ---
 
@@ -124,8 +152,11 @@ deadband/
 │   ├── mapper.py                # CVE → ATT&CK ICS technique + group mapping
 │   ├── gap_analyzer.py          # Detection gap analysis
 │   └── reporter.py              # HTML + PDF report generation
+├── templates/
+│   └── index.html               # Web UI
 ├── reports/                     # Generated reports go here
 ├── assets/                      # Screenshots and static files
+├── app.py                       # Flask web UI entry point
 ├── main.py                      # CLI entry point
 └── requirements.txt
 ```
@@ -163,7 +194,7 @@ Detection coverage is seeded from public vendor documentation, ATT&CK evaluation
 
 ## Built with
 
-Python · NVD API · CISA KEV · MITRE ATT&CK for ICS STIX · Jinja2 · WeasyPrint
+Python · Flask · NVD API · CISA KEV · MITRE ATT&CK for ICS STIX · Jinja2 · WeasyPrint
 
 ---
 
