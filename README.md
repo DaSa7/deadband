@@ -192,6 +192,16 @@ Detection coverage is seeded from public vendor documentation, ATT&CK evaluation
 
 ---
 
+## OS Compatibility
+
+| OS | Status | Notes |
+|----|--------|-------|
+| Linux | ✅ Full support | Tested on Kali and Ubuntu |
+| macOS | ✅ Full support | Requires `brew install pango` |
+| Windows | ⚠️ WSL2 only | Native Windows not supported due to WeasyPrint dependencies |
+
+---
+
 ## Built with
 
 Python · Flask · NVD API · CISA KEV · MITRE ATT&CK for ICS STIX · Jinja2 · WeasyPrint
