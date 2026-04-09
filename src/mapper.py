@@ -153,18 +153,41 @@ def build_group_technique_map(bundle: dict) -> dict[str, list[str]]:
 # Keyword matching — where CVEs meet ATT&CK
 # ---------------------------------------------------------------------------
 
+# Words too generic to be meaningful for matching CVEs to ICS techniques.
+# These appear in almost every CVE and technique description, inflating scores.
+_STOPWORDS: set[str] = {
+    "allow", "allows", "attacker", "attackers", "code", "command", "configuration",
+    "control", "could", "data", "denial", "device", "devices", "execute",
+    "execution", "exploit", "file", "files", "function", "have", "impact",
+    "information", "input", "interface", "leads", "local", "malicious", "memory",
+    "network", "other", "output", "parameter", "particular", "process",
+    "product", "program", "protocol", "remote", "request", "result", "results",
+    "service", "services", "software", "specific", "system", "systems", "that",
+    "this", "through", "user", "users", "value", "values", "version",
+    "versions", "vulnerability", "which", "with", "access", "affect",
+    "affected", "application", "cause", "certain", "change", "component",
+    "connection", "firmware", "from", "make", "module", "operation",
+    "read", "send", "server", "target", "update", "used", "using", "write",
+}
+
+
 def _extract_keywords(text: str) -> list[str]:
     """
     Breaks a CVE description into keywords we can match against technique text.
-    Filters out short words (under 4 chars) — they're too generic to be useful.
+    Filters out short words (under 4 chars) and ICS-generic stopwords that
+    would match nearly every technique.
     """
-    return [w.lower() for w in re.findall(r"[a-zA-Z]{4,}", text)]
+    return [
+        w.lower()
+        for w in re.findall(r"[a-zA-Z]{4,}", text)
+        if w.lower() not in _STOPWORDS
+    ]
 
 
 def match_techniques(
     cve: dict,
     technique_index: dict[str, dict],
-    min_keyword_hits: int = 1,
+    min_keyword_hits: int = 2,
 ) -> list[dict]:
     """
     Matches a CVE to ATT&CK ICS techniques by checking how many keywords from

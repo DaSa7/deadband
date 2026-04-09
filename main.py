@@ -17,6 +17,18 @@ from src.gap_analyzer import load_coverage_config, analyze_gaps, list_platforms,
 from src.reporter import generate_report
 
 
+def _deduplicate_cves(cves: list[dict]) -> list[dict]:
+    """Remove duplicate CVEs (by cve_id), keeping the first occurrence."""
+    seen: set[str] = set()
+    unique = []
+    for cve in cves:
+        cve_id = cve.get("cve_id")
+        if cve_id and cve_id not in seen:
+            seen.add(cve_id)
+            unique.append(cve)
+    return unique
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="deadband",
@@ -48,7 +60,7 @@ def main():
         print("\nError: --vendor and --platform are required.\n")
         sys.exit(1)
 
-    vendor = args.vendor.strip()
+    vendor = args.vendor.strip()[:200]
     platform = args.platform.strip().lower()
 
     # validate platform before doing any heavy work
@@ -67,7 +79,7 @@ def main():
 
     # run the pipeline
     collection = collect_all(vendor)
-    all_cves = collection["nvd"] + collection["cisa"]
+    all_cves = _deduplicate_cves(collection["nvd"] + collection["cisa"])
     mapped_results = map_cves_to_techniques(all_cves)
     gap_report = analyze_gaps(platform, mapped_results, config=config)
     path = generate_report(
