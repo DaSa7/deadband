@@ -21,12 +21,10 @@ from datetime import datetime, timezone
 
 from flask import Flask, Response, jsonify, render_template, request, send_file, stream_with_context
 
-# pipeline modules live in src/
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
-from collector import collect_all
-from mapper import map_cves_to_techniques
-from gap_analyzer import load_coverage_config, analyze_gaps, list_platforms, list_categories
-from reporter import generate_report
+from src.collector import collect_all
+from src.mapper import map_cves_to_techniques
+from src.gap_analyzer import load_coverage_config, analyze_gaps, list_platforms, list_categories
+from src.reporter import generate_report
 
 
 # ---------------------------------------------------------------------------
@@ -69,16 +67,40 @@ sys.stdout = _ThreadRouter()
 
 # job_id → {status, result, error, report_filename, log_lines}
 jobs: dict[str, dict] = {}
+_jobs_lock = threading.Lock()
+MAX_JOBS = 100
 
 
 def _new_job(job_id: str) -> None:
-    jobs[job_id] = {
-        "status": "running",
-        "result": None,
-        "error": None,
-        "report_filename": None,
-        "log_lines": [],
-    }
+    with _jobs_lock:
+        # evict oldest finished jobs when the store gets too large
+        if len(jobs) >= MAX_JOBS:
+            finished = [k for k, v in jobs.items() if v["status"] in ("done", "failed")]
+            for k in finished[:len(finished) // 2 or 1]:
+                del jobs[k]
+        jobs[job_id] = {
+            "status": "running",
+            "result": None,
+            "error": None,
+            "report_filename": None,
+            "log_lines": [],
+        }
+
+
+# ---------------------------------------------------------------------------
+# CVE deduplication
+# ---------------------------------------------------------------------------
+
+def _deduplicate_cves(cves: list[dict]) -> list[dict]:
+    """Remove duplicate CVEs (by cve_id), keeping the first occurrence."""
+    seen: set[str] = set()
+    unique = []
+    for cve in cves:
+        cve_id = cve.get("cve_id")
+        if cve_id and cve_id not in seen:
+            seen.add(cve_id)
+            unique.append(cve)
+    return unique
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +118,7 @@ def _run_pipeline(job_id: str, vendor: str, platform: str, log_queue: queue.Queu
     try:
         # Step 1 — collect CVEs from NVD + CISA
         collection = collect_all(vendor)
-        all_cves = collection["nvd"] + collection["cisa"]
+        all_cves = _deduplicate_cves(collection["nvd"] + collection["cisa"])
 
         # Step 2 — map CVEs to ATT&CK ICS techniques
         mapped_results = map_cves_to_techniques(all_cves)
@@ -211,7 +233,7 @@ def run():
       data: [ERROR] <JSON error object>     ← job failed
     """
     body = request.get_json(silent=True) or {}
-    vendor = (body.get("vendor") or "").strip()
+    vendor = (body.get("vendor") or "").strip()[:200]
     platform = (body.get("platform") or "").strip().lower()
 
     if not vendor or not platform:
@@ -336,4 +358,4 @@ if __name__ == "__main__":
     os.makedirs("reports", exist_ok=True)
     os.makedirs("templates", exist_ok=True)
     _real_stdout.write("// deadband web UI → http://localhost:5000\n")
-    app.run(host="0.0.0.0", port=5000, debug=True, threaded=True, use_reloader=False)
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True, use_reloader=False)
